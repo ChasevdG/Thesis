@@ -3,7 +3,7 @@ import torch
 import math
 
 from b_spline import B_spline
-from scipy.stats import multivariate_normal
+# from scipy.stats import multivariate_normal
 # Define element-wise erf for numpy arrays
 erf = np.vectorize(math.erf)
 

@@ -121,8 +121,6 @@ class Cake_GroupEquivariantCNN(torch.nn.Module):
         
         # Lift and disentangle features in the input.
         x = self.lifting_conv(x)
-        # x = torch.nn.functional.layer_norm(x, x.shape[-4:])
-        # x = torch.nn.functional.relu(x)
 
         # Apply group convolutions.
         for gconv in self.gconvs:
@@ -138,7 +136,7 @@ class Cake_GroupEquivariantCNN(torch.nn.Module):
 
 class GroupEquivariantCNN(torch.nn.Module):
 
-    def __init__(self, group, in_channels, out_channels, kernel_size, num_hidden, hidden_channels):
+    def __init__(self, group, in_channels, out_channels, kernel_size, hidden_dims):
         super().__init__()
 
         # Create the lifing convolution.
@@ -147,24 +145,26 @@ class GroupEquivariantCNN(torch.nn.Module):
         self.lifting_conv = LiftingConvolution(
             group=group,
             in_channels=in_channels,
-            out_channels=hidden_channels,
+            out_channels=in_channels,
             kernel_size=kernel_size
         )
         ## AND ENDS HERE ##
+        prev = in_channels
 
         # Create a set of group convolutions.
         self.gconvs = torch.nn.ModuleList()
 
         ## YOUR CODE STARTS HERE ##
-        for i in range(num_hidden):
+        for i in hidden_dims:
             self.gconvs.append(
                 GroupConvolution(
                     group=group,
-                    in_channels=hidden_channels,
-                    out_channels=hidden_channels,
+                    in_channels=prev,
+                    out_channels=i,
                     kernel_size=kernel_size
                 )
             )
+            prev = i
         ## AND ENDS HERE ##
 
         # Create the projection layer. Hint: check the import at the top of
@@ -175,7 +175,7 @@ class GroupEquivariantCNN(torch.nn.Module):
         ## AND ENDS HERE ##
 
         # And a final linear layer for classification.
-        self.final_linear = torch.nn.Linear(hidden_channels, out_channels)
+        self.final_linear = torch.nn.Linear(prev, out_channels)
     
     def forward(self, x):
         
