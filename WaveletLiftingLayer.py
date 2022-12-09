@@ -1,5 +1,10 @@
 import torch
 from wavelets import create_filter_bank
+import matplotlib.pyplot as plt
+import torchvision
+
+def rotate_tensor(tensor, angle):
+    return torchvision.transforms.functional.rotate(tensor, angle, torchvision.transforms.functional.InterpolationMode.BILINEAR)
 
 class WaveletLiftingLayer(torch.nn.Module):
     def __init__(self, slices, resolution, wavelet_type='b_spline') -> None:
@@ -8,6 +13,16 @@ class WaveletLiftingLayer(torch.nn.Module):
         self.register_buffer('filters', create_filter_bank(slices, resolution, wavelet_type))
         self._wavelet_type = wavelet_type
         
+        for filter in self.filters.squeeze():
+            plt.imshow(filter.detach().numpy())
+            plt.show()
+        for j,filter in enumerate(self.filters.squeeze()):
+            for i,f in enumerate(self.filters.squeeze()):
+                temp = torch.real(torch.fft.ifft2(f))
+                temp = rotate_tensor(temp.unsqueeze(0), (i-j)*360/slices)
+                plt.imshow((torch.real(torch.fft.ifft2(filter))-temp).squeeze())
+                plt.show()
+                assert torch.allclose(temp, torch.fft.ifft2(filter))
     def forward(self, x):
         '''
             Input:
@@ -21,4 +36,5 @@ class WaveletLiftingLayer(torch.nn.Module):
         x_ = x_ * self.filters # B x C x S x N x M
         y = torch.fft.ifft2(x_)
         
-        return torch.real(y).float()
+    
+        return torch.abs(y).float()
