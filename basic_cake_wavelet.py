@@ -48,7 +48,7 @@ def Lift_Kernel(kernel, n_rot):
     N, M = kernel.shape[-2:]
     kernels = None
     for i, rot in enumerate(rotations):
-        grid_i = create_grid(N, rot)
+        grid_i = create_grid(N, -rot)
         f_1 = grid_sample(kernel, grid_i).unsqueeze(0)
         if kernels is None:
             kernels = f_1
