@@ -48,7 +48,7 @@ def Lift_Kernel(kernel, n_rot):
     N, M = kernel.shape[-2:]
     kernels = None
     for i, rot in enumerate(rotations):
-        grid_i = create_grid(N, -rot)
+        grid_i = create_grid(N, rot)
         f_1 = grid_sample(kernel, grid_i).unsqueeze(0)
         if kernels is None:
             kernels = f_1
@@ -69,4 +69,25 @@ def create_cake(n_rot, resolution):
     # Add batch and channel dimensions
     wave = wave.unsqueeze(0).unsqueeze(0)
     ls = Lift_Kernel(wave, 4)
+    return ls
+
+def create_cake_filter(n_rot, resolution, filter_size=3):
+    grid = create_grid(resolution)
+    X = grid[0,:,:,0]
+    Y = grid[0,:,:,1]
+    r, theta = polar([X,Y])
+
+    # Check within angle and Nyquist frequency
+    wave = ((r<=1) * (theta>=0) * (theta<np.pi/2)).double()
+    # Fix DC
+    wave[r==0] = 1/n_rot
+    kernel = torch.fft.ifft2(torch.fft.ifftshift(wave))
+    kernel = torch.fft.fftshift(kernel)
+    N, M = kernel.shape[-2:]
+    kernel = kernel[N//2-filter_size//2:N//2+filter_size//2+1, M//2-filter_size//2:M//2+filter_size//2+1]
+    # Add batch and channel dimensions
+    kernel = kernel.unsqueeze(0).unsqueeze(0)
+    ls_real = Lift_Kernel(kernel.real, n_rot)
+    ls_imag = Lift_Kernel(kernel.imag, n_rot)
+    ls = torch.cat([ls_real, ls_imag], dim=1)
     return ls
